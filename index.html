@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>なりきり動物ルーレット</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&family=Fredoka:wght@500;700&display=swap">
+<style>
+:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}
+img{max-width:100%}
+[hidden]:not([hidden=until-found i]){display:none!important}
+/* Layout: one-screen card — roulette window, spin button, speaking frame below */
+:root{
+  --bg:#eef4e8; --card:#ffffff; --fg:#23331f; --muted:#5d6e57;
+  --accent:#e0812b; --accent-ink:#ffffff; --leaf:#4f8a3c; --cover:#355c2b; --line:#cfdcc6;
+  --jp:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN",sans-serif;
+  --en:"Fredoka","M PLUS Rounded 1c",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#172015; --card:#22301f; --fg:#eaf2e4; --muted:#a9b9a1;
+  --accent:#f0a052; --accent-ink:#1b1206; --leaf:#8cc874; --cover:#3f6b33; --line:#36482f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#172015; --card:#22301f; --fg:#eaf2e4; --muted:#a9b9a1;
+  --accent:#f0a052; --accent-ink:#1b1206; --leaf:#8cc874; --cover:#3f6b33; --line:#36482f; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--jp);padding:0 16px}
+.wrap{max-width:560px;margin:0 auto;padding-block:20px 32px;display:flex;flex-direction:column;gap:16px}
+h1{font-size:1.35rem;margin:0;text-wrap:balance;font-weight:800}
+.sub{margin:0;color:var(--muted);font-size:.9rem}
+.stage{background:var(--card);border:2px solid var(--line);border-radius:22px;padding:24px 16px;display:flex;flex-direction:column;align-items:center;gap:8px;position:relative;min-height:240px;justify-content:center;overflow:hidden}
+.emoji{font-size:5.5rem;line-height:1.1;height:6rem;display:flex;align-items:center}
+.badge{width:5.2rem;height:5.2rem;border-radius:50%;background:var(--leaf);color:var(--card);font-family:var(--en);font-weight:700;font-size:2.6rem;display:flex;align-items:center;justify-content:center}
+.word{font-family:var(--en);font-weight:700;font-size:2.6rem;letter-spacing:.01em;text-align:center}
+.jp{color:var(--muted);font-size:.95rem}
+.stage.spinning .word,.stage.spinning .emoji{filter:blur(1px);opacity:.75}
+.cover{position:absolute;inset:0;background:var(--cover);color:#fff;border:0;border-radius:20px;font-family:var(--jp);font-size:1.1rem;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer}
+.cover small{font-weight:500;opacity:.85;font-size:.85rem}
+.spin{background:var(--accent);color:var(--accent-ink);border:0;border-radius:999px;padding:16px;font-family:var(--jp);font-weight:800;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 0 color-mix(in srgb,var(--accent) 60%,#000)}
+.spin:active{transform:translateY(3px);box-shadow:0 1px 0 color-mix(in srgb,var(--accent) 60%,#000)}
+.spin:disabled{opacity:.6}
+button:focus-visible,label:focus-within{outline:3px solid var(--leaf);outline-offset:3px}
+.opts{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:.95rem}
+.opts label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.opts input{width:20px;height:20px;accent-color:var(--leaf)}
+.frame{background:var(--card);border:2px dashed var(--line);border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.frame h2{margin:0 0 4px;font-size:.95rem;color:var(--muted);font-weight:800}
+.line{font-family:var(--en);font-size:1.25rem;font-weight:500}
+.line b{color:var(--leaf);font-weight:700}
+.line .blank{display:inline-block;min-width:6em;border-bottom:2px solid var(--line)}
+.guess{margin-top:6px;padding-top:8px;border-top:1px solid var(--line);font-family:var(--en);font-size:1.1rem}
+.count{font-size:.85rem;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+.reset{background:none;border:0;color:var(--muted);text-decoration:underline;font-family:var(--jp);cursor:pointer;font-size:.85rem}
+.note{font-size:.78rem;color:var(--muted);margin:0}
+@media (prefers-reduced-motion:reduce){.spin:active{transform:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div>
+    <h1>なりきり動物ルーレット</h1>
+    <p class="sub">出てきた動物になりきって、ヒントを英語で伝えよう。</p>
+  </div>
+
+  <div class="stage" id="stage" aria-live="polite">
+    <div class="emoji" id="emoji"><span class="badge">?</span></div>
+    <div class="word" id="word">Who am I?</div>
+    <div class="jp" id="jp">ボタンをおしてね</div>
+    <button class="cover" id="cover" hidden>タップして見る<small>友達には見せないでね</small></button>
+  </div>
+
+  <button class="spin" id="spin">ルーレットを回す</button>
+
+  <div class="opts">
+    <label><input type="checkbox" id="secret" checked> ひみつモード（自分だけ見る）</label>
+    <label><input type="checkbox" id="hint"> ヒントを出す</label>
+  </div>
+
+  <div class="frame">
+    <h2>なりきって伝えよう</h2>
+    <div class="line">I live in <span id="h1" class="blank"></span>.</div>
+    <div class="line">I eat <span id="h2" class="blank"></span>.</div>
+    <div class="line">I have <span id="h3" class="blank"></span>.</div>
+    <div class="guess">Who am I? — Are you a …? / You are a …!</div>
+  </div>
+
+  <div class="count"><span id="count">0</span> / 39 ひき　<button class="reset" id="reset">はじめから</button></div>
+  <p class="note">ヒントは一つの例です。自分で考えた言い方でも大丈夫。</p>
+</div>
+
+<script>
+const A=[
+["bear","クマ","🐻","the forest","fish","a big body"],
+["cat","ネコ","🐱","a house","fish","a long tail"],
+["chimpanzee","チンパンジー","","the forest","fruits","long arms"],
+["cow","ウシ","🐮","a farm","grass","horns"],
+["dog","イヌ","🐶","a house","meat","a good nose"],
+["elephant","ゾウ","🐘","the savanna","grass","a long nose"],
+["giraffe","キリン","🦒","the savanna","leaves","a long neck"],
+["gorilla","ゴリラ","🦍","the forest","leaves","a big body"],
+["hamster","ハムスター","🐹","a house","nuts","a small body"],
+["hippo","カバ","🦛","the river","grass","a big mouth"],
+["horse","ウマ","🐴","a farm","grass","long legs"],
+["kangaroo","カンガルー","🦘","Australia","grass","strong legs"],
+["koala","コアラ","🐨","Australia","leaves","big ears"],
+["lion","ライオン","🦁","the savanna","meat","big teeth"],
+["monkey","サル","🐵","the mountain","fruits","a long tail"],
+["mouse","ネズミ","🐭","a house","nuts","a small body"],
+["orangutan","オランウータン","🦧","the rain forest","fruits","long arms"],
+["panda","パンダ","🐼","China","bamboo","black ears"],
+["pig","ブタ","🐷","a farm","vegetables","a big nose"],
+["polar bear","ホッキョクグマ","🐻‍❄️","the snow","fish","white fur"],
+["rabbit","ウサギ","🐰","the forest","vegetables","long ears"],
+["red panda","レッサーパンダ","","the forest","bamboo","a long tail"],
+["tiger","トラ","🐯","the forest","meat","big teeth"],
+["zebra","シマウマ","🦓","the savanna","grass","long legs"],
+["bird","鳥","🐦","the forest","bugs","wings"],
+["eagle","ワシ","🦅","the mountain","fish","big wings"],
+["owl","フクロウ","🦉","the forest","mice","big eyes"],
+["penguin","ペンギン","🐧","the sea","fish","short legs"],
+["caterpillar","イモムシ","🐛","a tree","leaves","many legs"],
+["grasshopper","バッタ","🦗","the grass","grass","long legs"],
+["frog","カエル","🐸","the pond","bugs","long legs"],
+["dolphin","イルカ","🐬","the sea","fish","a long nose"],
+["dugong","ジュゴン","","the sea","seaweed","a big body"],
+["fish","魚","🐟","the river","bugs","a small body"],
+["jellyfish","クラゲ","🪼","the sea","small fish","a soft body"],
+["sea turtle","ウミガメ","🐢","the sea","jellyfish","a shell"],
+["seal","アザラシ","🦭","the sea","fish","big eyes"],
+["shark","サメ","🦈","the sea","fish","big teeth"],
+["whale","クジラ","🐋","the sea","small fish","a very big body"]
+];
+const $=id=>document.getElementById(id);
+let deck=[],used=0,cur=null,busy=false;
+function shuffle(){deck=A.map((_,i)=>i);for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]]}used=0;$("count").textContent=0}
+function show(i){const a=A[i];
+  $("emoji").innerHTML=a[2]?a[2]:'<span class="badge">'+a[0][0].toUpperCase()+'</span>';
+  $("word").textContent=a[0];$("jp").textContent=a[1];}
+function hints(){const on=$("hint").checked&&cur!==null&&$("cover").hidden;
+  ["h1","h2","h3"].forEach((h,k)=>$(h).innerHTML=on?'<b>'+A[cur][k+3]+'</b>':'');}
+shuffle();
+$("spin").onclick=()=>{
+  if(busy)return; if(used>=deck.length)shuffle();
+  busy=true;$("spin").disabled=true;$("cover").hidden=true;$("stage").classList.add("spinning");hints();
+  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let n=reduce?1:16,d=50;
+  (function tick(){
+    show(Math.floor(Math.random()*A.length));
+    if(--n>0){d*=1.13;setTimeout(tick,d);return}
+    cur=deck[used++];show(cur);$("count").textContent=used;
+    $("stage").classList.remove("spinning");
+    if($("secret").checked)$("cover").hidden=false;
+    busy=false;$("spin").disabled=false;hints();
+  })();
+};
+$("cover").onclick=()=>{$("cover").hidden=true;hints()};
+$("hint").onchange=hints;
+$("reset").onclick=()=>{shuffle();cur=null;$("cover").hidden=true;$("emoji").innerHTML='<span class="badge">?</span>';$("word").textContent="Who am I?";$("jp").textContent="ボタンをおしてね";hints()};
+</script>
+
+</body>
+</html>
